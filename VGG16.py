@@ -20,19 +20,24 @@ num_epoches = 50
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 # download the dataset
-train_dataset = datasets.CIFAR10('../cifar10', train=True, transform=transforms.ToTensor(), download=True)
+train_dataset = datasets.CIFAR10('./cifar10', train=True, transform=transforms.ToTensor(), download=True)
 train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-test_dataset = datasets.CIFAR10('../cifar10', train=False, transform=transforms.ToTensor(), download=True)
+test_dataset = datasets.CIFAR10('./cifar10', train=False, transform=transforms.ToTensor(), download=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-VGG_16 = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
+cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
 classes = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+def Show_model():
+    print("\n")
+    model_ = VGG16_Dropout_BN(cfg).to(device)
+    summary(model_, (3, 32, 32))
 
 
 # model
-class VGG16(nn.Module):
-    def __init__(self, cfg):
-        super(VGG16, self).__init__()
+class VGG16_Dropout_BN(nn.Module):
+    def __init__(self):
+        super(VGG16_Dropout_BN, self).__init__()
 
         self.features = self.make_layer(cfg)
         self.classifier = nn.Sequential(
@@ -70,76 +75,40 @@ class VGG16(nn.Module):
         out = self.classifier(out)
         return out
 
-def Show_model():
-    print("\n")
-    model_ = VGG16(VGG_16).to(device)
-    summary(model_, (3, 32, 32))
+class VGG16_Baseline(nn.Module):
+    def __init__(self) -> None:
+        super(VGG16_Baseline, self).__init__()
 
+        self.features = self.make_layer(cfg)
+        self.classifier = nn.Sequential(
+            # 全連接層
+            nn.Linear(512, 100),
+            nn.ReLU(True),
 
-if __name__ == '__main__':
+            nn.Linear(100, 100),
+            nn.ReLU(True),
 
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    print("device : ", device)
+            nn.Linear(100, 10),
+        )
 
-    # create model
-    model = VGG16(VGG_16).to(device)
-    summary(model, (3, 32, 32))
+    def make_layer(self, cfg):
+        layer = []
+        in_channels = 3
 
-    writer = SummaryWriter(comment="VGG16")
+        for x in cfg:
+            if x == 'M':
+                layer += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            else:
+                layer += [nn.Conv2d(in_channels, x, kernel_size=3, padding=1),
+                          nn.ReLU(True)]  
+                in_channels = x
 
-    # define loss & optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+        return nn.Sequential(*layer)
 
-    # train model
-    for epoch in range(num_epoches):
-        print('*' * 25, 'epoch {}'.format(epoch + 1), '*' * 25)
-        running_loss = 0.0
-        correct = 0.0
-        total = 0.0
-        count = 0.0
+    def forward(self, x):
+        out = self.features(x)
+        out = out.view(out.size(0), -1)
+        out = self.classifier(out)
+        return out
 
-        for i, data in tqdm(enumerate(train_loader, 0)):  # show progress bar
-            img, label = data
-            img, label = img.to(device), label.to(device)
-
-            # Forward
-            out = model(img)  # 64 images output, [64, 10]
-            loss = criterion(out, label)
-            _, predicted = torch.max(out.data, 1)
-            total += label.size(0)
-            correct += (predicted == label).sum().item()
-
-            # back forward
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.item()
-            count += 1
-
-        writer.add_scalar("training loss ", running_loss / count, epoch + 1)
-        writer.add_scalar("accuracy", 100 * correct / total, epoch + 1)
-
-        print('epoch %d loss: %.3f' % (epoch + 1, running_loss / count))
-
-    print('Finished Training')
-    torch.save(model.state_dict(), '../model/VGG16.pth')  # save trained model
-
-    # Test
-    correct = 0
-    total = 0
-
-    with torch.no_grad():
-        for data in test_loader:  # Test model
-            img, label = data
-            img, label = img.to(device), label.to(device)
-
-            out = model(img)
-            loss = criterion(out, label)
-            _, predicted = torch.max(out.data, 1)
-            total += label.size(0)
-            correct += (predicted == label).sum().item()
-
-    print('Accuracy of the network : %d %%' % (
-            100 * correct / total))
+        

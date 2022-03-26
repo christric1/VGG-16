@@ -5,14 +5,14 @@ from torch import optim
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
-import VGG16 
+import VGG16
 
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     print("device : ", device)
 
     # create model
-    model = VGG16.VGG16_Dropout_BN().to(device)
+    model = VGG16.VGG16_Baseline().to(device)
     summary(model, (3, 32, 32))
 
     writer = SummaryWriter(comment="VGG16")
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         print('epoch %d loss: %.3f' % (epoch + 1, running_loss / count))
 
     print('Finished Training')
-    torch.save(model.state_dict(), '../model/VGG16.pth')  # save trained model
+    torch.save(model.state_dict(), './models/VGG16_Baseline.pth')  # save trained model
 
     # Test
     correct = 0

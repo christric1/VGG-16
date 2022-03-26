@@ -1,12 +1,9 @@
 import torch
 import torch.nn as nn
-from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from torchvision import datasets
 from torchsummary import summary
-from tqdm import tqdm
 import os
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -27,6 +24,7 @@ test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
 classes = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
 
 def Show_model():
     print("\n")
@@ -74,6 +72,7 @@ class VGG16_Dropout_BN(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.classifier(out)
         return out
+
 
 class VGG16_Baseline(nn.Module):
     def __init__(self) -> None:

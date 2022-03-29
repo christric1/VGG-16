@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from torchsummary import summary
 from torch import optim
+from torchsummary import summary
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
@@ -12,17 +12,18 @@ if __name__ == '__main__':
     print("device : ", device)
 
     # create model
-    model = VGG16.VGG16_Baseline().to(device)
+    model = VGG16.__dict__['VGG16']().to(device)
     summary(model, (3, 32, 32))
 
     writer = SummaryWriter(comment="VGG16")
 
     # define loss & optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=VGG16.learning_rate)
+    optimizer = optim.SGD(model.parameters(), lr=VGG16.learning_rate, momentum=VGG16.momentum,
+                          weight_decay=VGG16.weight_decay)
 
     # train model
-    for epoch in range(VGG16.num_epoches):
+    for epoch in range(VGG16.num_epoch):
         print('*' * 25, 'epoch {}'.format(epoch + 1), '*' * 25)
         running_loss = 0.0
         correct = 0.0
@@ -34,7 +35,7 @@ if __name__ == '__main__':
             img, label = img.to(device), label.to(device)
 
             # Forward
-            out = model(img)  # 64 images output, [64, 10]
+            out = model(img)  # 32 images output, [32, 10]
             loss = criterion(out, label)
             _, predicted = torch.max(out.data, 1)
             total += label.size(0)
@@ -54,7 +55,7 @@ if __name__ == '__main__':
         print('epoch %d loss: %.3f' % (epoch + 1, running_loss / count))
 
     print('Finished Training')
-    torch.save(model.state_dict(), './models/VGG16_Baseline.pth')  # save trained model
+    torch.save(model.state_dict(), './models/VGG16__.pth')  # save trained model
 
     # Test
     correct = 0
